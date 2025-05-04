@@ -122,6 +122,7 @@ These define _how_ the system is built and operated using the chosen stack:
 - User can only perform actions on entities that belong to him/her.
 - For every user, an API key is being created and is mentioned in below table, API key has en expiry of 30 days from creation date.
 - Every API request is authenticated.
+- For every transaction it performs, it does pessimistic locking or takes a lock before writing / updating the data to ensure showing consistent data.
 
 ## Caveats:
 - User with valid API key can delete any user.
@@ -250,3 +251,72 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Docs: https://hexdocs.pm/phoenix
 - Forum: https://elixirforum.com/c/phoenix-forum
 - Source: https://github.com/phoenixframework/phoenix
+
+# Splitwise Backend Service
+
+## Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API Gateway
+    participant Auth Service
+    participant Splitwise Service
+    participant Database
+
+    Client->>API Gateway: HTTP Request
+    API Gateway->>Auth Service: Validate API Key
+    Auth Service-->>API Gateway: API Key Valid/Invalid
+    
+    alt Invalid API Key
+        API Gateway-->>Client: 401 Unauthorized
+    else Valid API Key
+        API Gateway->>Splitwise Service: Forward Request
+        
+        alt Read Operation
+            Splitwise Service->>Database: Query Data
+            Database-->>Splitwise Service: Return Data
+            Splitwise Service-->>API Gateway: Response
+            API Gateway-->>Client: HTTP Response
+        else Write Operation
+            Splitwise Service->>Database: Begin Transaction
+            Splitwise Service->>Database: Update Data
+            Splitwise Service->>Database: Commit Transaction
+            Splitwise Service-->>API Gateway: Response
+            API Gateway-->>Client: HTTP Response
+        end
+    end
+```
+
+### Flow Explanation
+
+1. **Client Request**
+   - Client sends HTTP request to API Gateway
+   - Request includes API key for authentication
+
+2. **Authentication**
+   - API Gateway validates API key with Auth Service
+   - Invalid requests are rejected immediately
+   - Valid requests proceed to Splitwise Service
+
+3. **Request Processing**
+   - Read Operations:
+     - Direct database queries
+     - No transaction required
+     - Fast response times
+   
+   - Write Operations:
+     - Transaction-based
+     - Ensures data consistency
+     - Handles complex updates
+
+4. **Response Flow**
+   - Database results processed by Splitwise Service
+   - Response formatted and sent through API Gateway
+   - Client receives HTTP response
+
+This architecture ensures:
+- Secure request handling
+- Data consistency
+- Scalable processing
+- Clear separation of concerns
