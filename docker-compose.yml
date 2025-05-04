@@ -18,7 +18,7 @@ services:
       - db
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/splitwise_prod
-      SECRET_KEY_BASE: super_secret_key_base_please_change
+      SECRET_KEY_BASE: TBjMliVRGs72awDe4yuHZ7d5LPgS8Iws
       PORT: 8080
       MIX_ENV: prod
       PHX_SERVER: "true"
