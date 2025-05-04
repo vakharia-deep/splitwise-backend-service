@@ -1,5 +1,6 @@
 defmodule Splitwise.Accounts do
   import Ecto.Query, warn: false
+  alias Ecto.UUID
   alias Splitwise.Repo
   alias Splitwise.Accounts.{User, Group, GroupMember}
   alias Ecto.Multi
@@ -20,6 +21,18 @@ defmodule Splitwise.Accounts do
 
   def get_user_by_email(email), do: Repo.get_by(User, email: email)
 
+  def get_users_by_emails(emails) do
+    users = Repo.all(from u in User, where: u.email in ^emails)
+
+    if length(users) == length(emails) do
+      {:ok, users}
+    else
+      found_emails = Enum.map(users, & &1.email)
+      missing_emails = Enum.reject(emails, &(&1 in found_emails))
+      {:error, missing_emails}
+    end
+  end
+
   def get_users_by_ids(user_ids) do
     users = Repo.all(from u in User, where: u.id in ^user_ids)
 
@@ -33,6 +46,27 @@ defmodule Splitwise.Accounts do
   end
 
   def create_user(attrs \\ %{}, current_user) do
+    attrs =
+      cond do
+        Map.has_key?(attrs, "api_key") and Map.has_key?(attrs, "api_key_expires_at") ->
+          attrs
+
+        Map.has_key?(attrs, "api_key") ->
+          attrs
+          |> Map.merge(%{"api_key_expires_at" => DateTime.add(DateTime.utc_now(), 30, :day)})
+
+        Map.has_key?(attrs, "api_key_expires_at") ->
+          attrs
+          |> Map.merge(%{"api_key" => UUID.generate()})
+
+        true ->
+          attrs
+          |> Map.merge(%{
+            "api_key" => UUID.generate(),
+            "api_key_expires_at" => DateTime.add(DateTime.utc_now(), 30, :day)
+          })
+      end
+
     Multi.new()
     |> Multi.insert(:user, User.changeset(%User{}, attrs))
     |> Multi.run(:activity_log, fn _repo, %{user: user} ->
@@ -41,7 +75,7 @@ defmodule Splitwise.Accounts do
         user_id: current_user.id,
         entity_type: "user",
         entity_id: user.id,
-        details: %{email: user.email, name: user.name}
+        details: %{email: user.email, name: user.name, id: user.id}
       })
     end)
     |> Repo.transaction()
@@ -59,22 +93,34 @@ defmodule Splitwise.Accounts do
   end
 
   def update_user(%User{} = user, attrs, current_user) do
-    Multi.new()
-    |> Multi.update(:user, User.changeset(user, attrs))
-    |> Multi.run(:activity_log, fn _repo, %{user: updated_user} ->
-      Splitwise.ActivityLogs.create_activity_log(%{
-        action: "user_updated",
-        user_id: current_user.id,
-        entity_type: "user",
-        entity_id: updated_user.id,
-        details: %{email: updated_user.email, name: updated_user.name}
-      })
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{user: updated_user}} -> {:ok, updated_user}
-      {:error, :user, changeset, _} -> {:error, changeset}
-      {:error, _failed_operation, failed_value, _changes_so_far} -> {:error, failed_value}
+    # Filter out any fields that are not allowed to be updated
+    allowed_fields = ["name", "email", "password"]
+    filtered_attrs = Map.take(attrs, allowed_fields)
+
+    # Check if there are any fields that are not allowed
+    disallowed_fields = Map.keys(attrs) -- allowed_fields
+
+    if disallowed_fields != [] do
+      {:error,
+       "Only name, email, and password can be updated. Disallowed fields: #{Enum.join(disallowed_fields, ", ")}"}
+    else
+      Multi.new()
+      |> Multi.update(:user, User.changeset(user, filtered_attrs))
+      |> Multi.run(:activity_log, fn _repo, %{user: updated_user} ->
+        Splitwise.ActivityLogs.create_activity_log(%{
+          action: "user_updated",
+          user_id: current_user.id,
+          entity_type: "user",
+          entity_id: updated_user.id,
+          details: %{email: updated_user.email, name: updated_user.name}
+        })
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{user: updated_user}} -> {:ok, updated_user}
+        {:error, :user, changeset, _} -> {:error, changeset}
+        {:error, _failed_operation, failed_value, _changes_so_far} -> {:error, failed_value}
+      end
     end
   end
 
@@ -160,7 +206,13 @@ defmodule Splitwise.Accounts do
       users = Enum.map(user_emails, &get_user_by_email/1)
 
       if Enum.any?(users, &is_nil/1) do
-        {:error, "One or more users not found"}
+        # Find which emails were not found
+        not_found_emails =
+          Enum.zip(user_emails, users)
+          |> Enum.filter(fn {_email, user} -> is_nil(user) end)
+          |> Enum.map(fn {email, _} -> email end)
+
+        {:error, "One or more users not found: #{Enum.join(not_found_emails, ", ")}"}
       else
         {:ok, users}
       end
@@ -227,22 +279,19 @@ defmodule Splitwise.Accounts do
     end
   end
 
-  def delete_group(%Group{} = group, current_user) do
+  def delete_group(%Group{} = group) do
     Multi.new()
-    |> Multi.delete(:group, group)
-    |> Multi.run(:activity_log, fn _repo, %{group: _deleted_group} ->
-      Splitwise.ActivityLogs.create_activity_log(%{
-        action: "group_deleted",
-        user_id: current_user.id,
-        entity_type: "group",
-        entity_id: group.id,
-        group_id: group.id,
-        details: %{name: group.name, description: group.description}
-      })
+    |> Multi.run(:lock_group, fn repo, _changes ->
+      case repo.get(Group, group.id, lock: "FOR UPDATE") do
+        nil -> {:error, "Group not found"}
+        locked_group -> {:ok, locked_group}
+      end
     end)
+    |> Multi.delete(:group, fn %{lock_group: locked_group} -> locked_group end)
     |> Repo.transaction()
     |> case do
       {:ok, _} -> {:ok, :deleted}
+      {:error, :lock_group, error, _} -> {:error, error}
       {:error, :group, changeset, _} -> {:error, changeset}
       {:error, _failed_operation, failed_value, _changes_so_far} -> {:error, failed_value}
     end
@@ -315,7 +364,10 @@ defmodule Splitwise.Accounts do
   end
 
   def get_group_member(user_id, group_id) do
-    Repo.get_by(GroupMember, user_id: user_id, group_id: group_id)
+    case Repo.get_by(GroupMember, user_id: user_id, group_id: group_id) do
+      nil -> {:error, "Group member not found"}
+      group_member -> {:ok, group_member}
+    end
   end
 
   def find_or_create_group_by_users(user_ids, current_user) when is_list(user_ids) do
@@ -366,7 +418,20 @@ defmodule Splitwise.Accounts do
   end
 
   def remove_user_from_group(%GroupMember{} = group_member) do
-    Repo.delete(group_member)
+    case Repo.delete(group_member) do
+      {:ok, group_member} ->
+        Splitwise.ActivityLogs.create_activity_log(%{
+          action: "remove_user_from_group",
+          user_id: group_member.user_id,
+          group_id: group_member.group_id,
+          details: "User removed from group"
+        })
+
+        {:ok, group_member}
+
+      error ->
+        error
+    end
   end
 
   def remove_user_from_group(_group_member), do: {:error, "Invalid group member"}

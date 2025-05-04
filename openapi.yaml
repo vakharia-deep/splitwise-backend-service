@@ -1,0 +1,380 @@
+openapi: 3.0.3
+info:
+  title: Splitwise API
+  description: API for managing users, groups, and expenses in a Splitwise-like app.
+  version: 1.0.0
+
+servers:
+  - url: http://splitwise-api.test
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  schemas:
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+        password_hash:
+          type: string
+        name:
+          type: string
+
+    Group:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    Expense:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+        paid_by_id:
+          type: integer
+        date:
+          type: string
+          format: date
+
+    ShareByAmount:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        amount:
+          type: number
+
+    ShareByPercentage:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        share_percentage:
+          type: number
+
+paths:
+  /api/users:
+    post:
+      summary: Create a user
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created
+
+    patch:
+      summary: Update user
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+      responses:
+        '200':
+          description: User updated
+
+  /api/users/{userId}:
+    delete:
+      summary: Delete a user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: User deleted
+
+  /api/groups:
+    get:
+      summary: View all groups
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of groups
+
+    post:
+      summary: Create group with members
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group:
+                  $ref: '#/components/schemas/Group'
+                user_emails:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Group created
+
+  /api/groups/{groupId}:
+    get:
+      summary: View group by ID
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Group details
+
+    put:
+      summary: Update group
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group:
+                  type: object
+                  properties:
+                    description:
+                      type: string
+      responses:
+        '200':
+          description: Group updated
+
+    delete:
+      summary: Delete group
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Group deleted
+
+  /api/groups/{groupId}/add_users:
+    post:
+      summary: Add users to group
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_emails:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Users added
+
+  /api/groups/remove_user:
+    post:
+      summary: Remove user from group
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                user_id:
+                  type: integer
+      responses:
+        '200':
+          description: User removed
+
+  /api/expenses:
+    post:
+      summary: Create expense
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    expense:
+                      $ref: '#/components/schemas/Expense'
+                    shares:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/ShareByAmount'
+                - type: object
+                  properties:
+                    expense:
+                      $ref: '#/components/schemas/Expense'
+                    shares:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/ShareByPercentage'
+      responses:
+        '201':
+          description: Expense created
+
+  /api/expenses/{expenseId}:
+    delete:
+      summary: Delete expense
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: expenseId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Expense deleted
+
+  /api/expenses/{expenseId}/comment:
+    post:
+      summary: Create comment
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: expenseId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Comment added
+
+  /api/comments/{commentId}:
+    patch:
+      summary: Update comment
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Comment updated
+
+    delete:
+      summary: Delete comment
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Comment deleted
+
+  /api/expense_shares/{shareId}/payments:
+    post:
+      summary: Make payment
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: shareId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment:
+                  type: object
+                  properties:
+                    to_user_id:
+                      type: integer
+                    amount:
+                      type: number
+      responses:
+        '200':
+          description: Payment recorded

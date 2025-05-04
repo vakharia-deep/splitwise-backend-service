@@ -26,7 +26,7 @@ defmodule SplitwiseWeb.AccountJSON do
   Renders a single group.
   """
   def show_group(%{group: group}) do
-    %{data: group_data(group)}
+    %{success: true, data: group_data(group)}
   end
 
   def update_group(%{group: group}) do
@@ -35,10 +35,6 @@ defmodule SplitwiseWeb.AccountJSON do
 
   def user_groups(%{groups: groups}) do
     %{groups: for(group <- groups, do: user_group_data(group))}
-  end
-
-  def add_users_to_group(%{users: users}) do
-    %{data: %{users: Enum.map(users, &data/1)}}
   end
 
   def delete_user_from_group(%{group_member: _group_member}) do

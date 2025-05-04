@@ -13,12 +13,12 @@ defmodule SplitwiseWeb.Router do
   scope "/api", SplitwiseWeb do
     pipe_through [:api, :api_auth]
 
-    resources "/users", AccountController, only: [:create, :update, :delete]
-
+    post "/users", AccountController, :create
     get "/users", AccountController, :show
+    patch "/users", AccountController, :update
+    delete "/users", AccountController, :delete
 
-    get "/expense-shares/receivable", ExpenseController, :get_amount_receivable
-    get "/expense-shares/payable", ExpenseController, :get_amount_payable
+    get "/activity-logs", ActivityLogController, :show
 
     get "/groups", AccountController, :user_groups
     post "/groups", AccountController, :create_group
@@ -27,7 +27,10 @@ defmodule SplitwiseWeb.Router do
     delete "/groups/:id", AccountController, :delete_group
 
     post "/groups/:group_id/add_users", AccountController, :add_users_to_group
-    delete "/groups/:group_id/users/:user_id", AccountController, :remove_user_from_group
+    post "/groups/remove_user", AccountController, :remove_users_from_group
+
+    get "/expense-shares/receivable", ExpenseController, :get_amount_receivable
+    get "/expense-shares/payable", ExpenseController, :get_amount_payable
 
     post "/expenses", ExpenseController, :create
     patch "/expenses/:id", ExpenseController, :update
@@ -40,7 +43,6 @@ defmodule SplitwiseWeb.Router do
     resources "/payments", PaymentController, only: [:show, :update, :delete]
 
     # ActivityLog routes
-    get "/activity-logs", ActivityLogController, :show
 
     post "/expense_shares/:expense_share_id/payments", PaymentController, :create_for_share
 

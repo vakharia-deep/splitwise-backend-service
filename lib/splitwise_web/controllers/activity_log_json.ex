@@ -20,5 +20,7 @@ defmodule SplitwiseWeb.ActivityLogJSON do
       inserted_at: activity_log.inserted_at,
       updated_at: activity_log.updated_at
     }
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Map.new()
   end
 end

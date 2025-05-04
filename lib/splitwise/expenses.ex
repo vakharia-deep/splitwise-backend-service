@@ -7,6 +7,8 @@ defmodule Splitwise.Expenses do
   alias Splitwise.Accounts.User
   alias Splitwise.Accounts.Group
 
+  require Decimal
+
   # Expense functions
   def list_expenses do
     Repo.all(Expense)
@@ -408,17 +410,30 @@ defmodule Splitwise.Expenses do
   end
 
   defp validate_amount_shares(shares, total_amount) do
+    total_amount =
+      if Decimal.is_decimal(total_amount), do: Decimal.to_float(total_amount), else: total_amount
+
     case Enum.find(shares, fn share -> is_nil(share["amount"]) end) do
       nil ->
         total_share_amount =
           Enum.reduce(shares, 0.0, fn share, acc ->
-            acc + share["amount"]
+            amount =
+              if Decimal.is_decimal(share["amount"]),
+                do: Decimal.to_float(share["amount"]),
+                else: share["amount"]
+
+            acc + amount
           end)
 
         if abs(total_share_amount - total_amount) < 0.01 do
           updated_shares =
             Enum.map(shares, fn share ->
-              percentage = share["amount"] / total_amount
+              amount =
+                if Decimal.is_decimal(share["amount"]),
+                  do: Decimal.to_float(share["amount"]),
+                  else: share["amount"]
+
+              percentage = amount / total_amount
               Map.put(share, "share_percentage", percentage)
             end)
 
@@ -497,7 +512,11 @@ defmodule Splitwise.Expenses do
         {:error, changeset} -> {:error, changeset}
       end
     end)
-    |> Multi.run(:update_share, fn repo, %{get_share: share, validate_payment: %{share: _}} ->
+    |> Multi.run(:update_share, fn repo,
+                                   %{
+                                     lock_share_and_expense: %{share: share},
+                                     validate_payment: %{share: _}
+                                   } ->
       payment_amount = payment_params["amount"]
       new_remaining_amount = share.remaining_amount - payment_amount
 
@@ -511,7 +530,10 @@ defmodule Splitwise.Expenses do
       |> repo.update()
     end)
     |> Multi.run(:check_expense_status, fn repo,
-                                           %{get_share: share, update_share: _updated_share} ->
+                                           %{
+                                             lock_share_and_expense: %{share: share},
+                                             update_share: _updated_share
+                                           } ->
       shares =
         ExpenseShare
         |> where([es], es.expense_id == ^share.expense_id)
@@ -532,8 +554,7 @@ defmodule Splitwise.Expenses do
     |> Multi.run(:activity_log, fn _repo,
                                    %{
                                      create_payment: payment,
-                                     get_share: _share,
-                                     validate_payment: %{expense: expense}
+                                     lock_share_and_expense: %{share: _share, expense: expense}
                                    } ->
       Splitwise.ActivityLogs.create_activity_log(%{
         action: "payment_created",
@@ -555,7 +576,7 @@ defmodule Splitwise.Expenses do
       {:ok, %{create_payment: payment, update_share: updated_share}} ->
         {:ok, %{payment: payment, share: updated_share}}
 
-      {:error, :get_share, error, _} ->
+      {:error, :lock_share_and_expense, error, _} ->
         {:error, error}
 
       {:error, :validate_payment, error, _} ->
@@ -573,8 +594,8 @@ defmodule Splitwise.Expenses do
       {:error, :activity_log, changeset, _} ->
         {:error, changeset}
 
-      {:error, _failed_operation, _failed_value, _changes_so_far} ->
-        {:error, "Failed to process payment"}
+      {:error, _failed_operation, failed_value, _changes_so_far} ->
+        {:error, failed_value}
     end
   end
 
@@ -701,11 +722,11 @@ defmodule Splitwise.Expenses do
                   %{
                     expense_id: updated_expense.id,
                     user_id: share["user_id"],
-                    amount: amount,
+                    amount: amount * 1.0,
                     share_percentage: share["share_percentage"],
                     inserted_at: now,
                     updated_at: now,
-                    remaining_amount: if(is_payer, do: 0.0, else: amount),
+                    remaining_amount: if(is_payer, do: 0.0, else: amount * 1.0),
                     status: if(is_payer, do: "settled", else: "pending")
                   }
                 end)
@@ -763,44 +784,48 @@ defmodule Splitwise.Expenses do
     if expense.status == "settled" and new_amount != expense.amount do
       {:error, "Cannot update amount of a settled expense."}
     else
-      Multi.new()
-      |> Multi.run(:lock_expense, fn repo, _changes ->
-        expense =
-          from(e in Expense,
-            where: e.id == ^expense.id,
-            lock: "FOR UPDATE"
-          )
-          |> repo.one()
+      if Map.has_key?(expense_params, "amount") do
+        {:error, "Please provide shares when updating expense amount."}
+      else
+        Multi.new()
+        |> Multi.run(:lock_expense, fn repo, _changes ->
+          expense =
+            from(e in Expense,
+              where: e.id == ^expense.id,
+              lock: "FOR UPDATE"
+            )
+            |> repo.one()
 
-        if expense do
-          {:ok, expense}
-        else
-          {:error, "Expense not found"}
+          if expense do
+            {:ok, expense}
+          else
+            {:error, "Expense not found"}
+          end
+        end)
+        |> Multi.update(:expense, fn %{lock_expense: locked_expense} ->
+          Expense.changeset(locked_expense, expense_params)
+        end)
+        |> Multi.run(:activity_log, fn _repo, %{expense: updated_expense} ->
+          Splitwise.ActivityLogs.create_activity_log(%{
+            action: "expense_updated",
+            user_id: current_user.id,
+            entity_type: "expense",
+            entity_id: updated_expense.id,
+            expense_id: updated_expense.id,
+            group_id: updated_expense.group_id,
+            details: %{
+              amount: updated_expense.amount,
+              description: updated_expense.description,
+              group_id: updated_expense.group_id
+            }
+          })
+        end)
+        |> Repo.transaction()
+        |> case do
+          {:ok, %{expense: updated_expense}} -> {:ok, updated_expense}
+          {:error, :expense, changeset, _} -> {:error, changeset}
+          {:error, _failed_operation, failed_value, _changes_so_far} -> {:error, failed_value}
         end
-      end)
-      |> Multi.update(:expense, fn %{lock_expense: locked_expense} ->
-        Expense.changeset(locked_expense, expense_params)
-      end)
-      |> Multi.run(:activity_log, fn _repo, %{expense: updated_expense} ->
-        Splitwise.ActivityLogs.create_activity_log(%{
-          action: "expense_updated",
-          user_id: current_user.id,
-          entity_type: "expense",
-          entity_id: updated_expense.id,
-          expense_id: updated_expense.id,
-          group_id: updated_expense.group_id,
-          details: %{
-            amount: updated_expense.amount,
-            description: updated_expense.description,
-            group_id: updated_expense.group_id
-          }
-        })
-      end)
-      |> Repo.transaction()
-      |> case do
-        {:ok, %{expense: updated_expense}} -> {:ok, updated_expense}
-        {:error, :expense, changeset, _} -> {:error, changeset}
-        {:error, _failed_operation, failed_value, _changes_so_far} -> {:error, failed_value}
       end
     end
   end
@@ -839,7 +864,7 @@ defmodule Splitwise.Expenses do
     )
     |> Repo.all()
     |> case do
-      [] -> {:error, "No payable expenses found"}
+      [] -> {:ok, []}
       shares -> {:ok, shares}
     end
   end
@@ -878,7 +903,7 @@ defmodule Splitwise.Expenses do
     )
     |> Repo.all()
     |> case do
-      [] -> {:error, "No receivable expenses found"}
+      [] -> {:ok, []}
       shares -> {:ok, shares}
     end
   end

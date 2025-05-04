@@ -1,0 +1,763 @@
+{
+	"info": {
+		"_postman_id": "25d60dc4-6d1a-4063-b4af-38a4bce0d69b",
+		"name": "Splitwise",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32035811",
+		"_collection_link": "https://deep-dev.postman.co/workspace/Personal~45f51e16-dc17-44ee-b9a0-1337df5d97d9/collection/32035811-25d60dc4-6d1a-4063-b4af-38a4bce0d69b?action=share&source=collection_link&creator=32035811"
+	},
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "c94e9832-6422-4131-b73c-4955ae40eeb6",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user\": {\n      \"email\": \"deepvakharia111@gmail.com\",\n      \"password_hash\": \"deep_vakharia\",\n      \"name\": \"Deep Vakharia\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Fetch Users",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": ""
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/users/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Users",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "bb2ce2ed-5bd1-49ba-8304-c5756d38f132",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user\": {\n        \"name\": \"Charlie\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Groups",
+			"item": [
+				{
+					"name": "View All Groups for a current user",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "bb2ce2ed-5bd1-49ba-8304-c5756d38f132",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:4000/api/groups",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Group With Members",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "bb2ce2ed-5bd1-49ba-8304-c5756d38f132",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"group\": {\n        \"name\": \"Group 1\",\n        \"description\": \"For Group 1\"\n    },\n    \"user_emails\": [\"john@example.com\",\"jane@example.com\",\"bob@example.com\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/groups",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "View Group By Group ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "bb2ce2ed-5bd1-49ba-8304-c5756d38f132",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:4000/api/groups/4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"groups",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Users to Group",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "d92706b7-fd4b-4055-a665-20a893dcdf22",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_emails\": [\"charlie@example.com\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/groups/4/add_users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"groups",
+								"4",
+								"add_users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove User from Group",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "b909a804-9602-49d2-825e-69950b4475ba",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"group_id\": 4,\n    \"user_id\": 5\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/groups/remove_user",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"groups",
+								"remove_user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Group",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "c94e9832-6422-4131-b73c-4955ae40eeb6",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"group\": {\n        \"description\": \"New Group Nam\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/groups/4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"groups",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Group",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "b909a804-9602-49d2-825e-69950b4475ba",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:4000/api/groups/4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"groups",
+								"4"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Expenses",
+			"item": [
+				{
+					"name": "Comments",
+					"item": [
+						{
+							"name": "Create Comment",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "c94e9832-6422-4131-b73c-4955ae40eeb6",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"comment\": \"New Comment\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:4000/api/expenses/6/comment",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "4000",
+									"path": [
+										"api",
+										"expenses",
+										"6",
+										"comment"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Comment",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "c94e9832-6422-4131-b73c-4955ae40eeb6",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:4000/api/comments/2",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "4000",
+									"path": [
+										"api",
+										"comments",
+										"2"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Comment",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "c94e9832-6422-4131-b73c-4955ae40eeb6",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"comment\": \"Update Comment\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:4000/api/comments/2",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "4000",
+									"path": [
+										"api",
+										"comments",
+										"2"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Create Expense - Split by Amount",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-api-key",
+								"value": "c94e9832-6422-4131-b73c-4955ae40eeb6"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"expense\": {\n      \"description\": \"Groceries\",\n      \"amount\": 400.00,\n      \"paid_by_id\": 1,\n      \"date\": \"2024-03-20\"\n    },\n    \"shares\": [\n      {\n        \"user_id\": 1,\n        \"amount\": 100.00\n      },\n      {\n        \"user_id\": 2,\n        \"amount\": 200.00\n      },\n      {\n        \"user_id\": 3,\n        \"amount\": 100.0\n      }\n    ]\n  }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/expenses",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expenses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Expense - Split by Percentage",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-api-key",
+								"value": "c94e9832-6422-4131-b73c-4955ae40eeb6"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"expense\": {\n      \"description\": \"Groceries\",\n      \"amount\": 150.00,\n      \"paid_by_id\": 2,\n      \"date\": \"2024-03-20\"\n    },\n    \"shares\": [\n      {\n        \"user_id\": 1,\n        \"share_percentage\": 0.5\n      },\n      {\n        \"user_id\": 2,\n        \"share_percentage\": 0.25\n      },\n      {\n        \"user_id\": 3,\n        \"share_percentage\": 0.25\n      }\n    ]\n  }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/expenses",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expenses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Make Payment",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "87bf679f-9e6a-4d81-aadc-b5b8bcfc320e",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment\": {\n        \"to_user_id\": 1,\n        \"amount\": 100\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/expense_shares/28/payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expense_shares",
+								"28",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Expense",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "a4339649-c380-4dfc-afec-edb602ffe30a",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:4000/api/expenses/10",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expenses",
+								"10"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Simple Update Expense",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "c94e9832-6422-4131-b73c-4955ae40eeb6",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"expense\": {\n        \"date\": \"2025-01-02\",\n        \"description\": \"New one\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/expenses/5",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expenses",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Amount for Expense",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "c94e9832-6422-4131-b73c-4955ae40eeb6",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"expense\": {\n        \"description\": \"New Data\"\n    },\n    \"shares\": [\n        {\n            \"user_id\": 2,\n            \"amount\": 200\n        },\n        {\n            \"user_id\": 3,\n            \"amount\": 100\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:4000/api/expenses/6",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expenses",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Expense Shares Receivable",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "bb2ce2ed-5bd1-49ba-8304-c5756d38f132",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:4000/api/expense-shares/receivable",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expense-shares",
+								"receivable"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Expense Shares Payable",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "d9d3f52a-87ee-4344-b2cd-a01c7f7d1d77",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:4000/api/expense-shares/payable",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"expense-shares",
+								"payable"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Activity Logs",
+			"item": [
+				{
+					"name": "User Level Logs",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

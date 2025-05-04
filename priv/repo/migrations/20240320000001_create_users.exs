@@ -7,7 +7,7 @@ defmodule Splitwise.Repo.Migrations.CreateUsers do
       add :name, :string, null: false
       add :password_hash, :string, null: false
       add :api_key, :uuid
-      add :api_key_expires_at, :utc_datetime
+      add :api_key_expires_at, :utc_datetime_usec
 
       timestamps(type: :utc_datetime_usec)
     end

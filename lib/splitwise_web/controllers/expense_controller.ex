@@ -9,63 +9,27 @@ defmodule SplitwiseWeb.ExpenseController do
     merged_params = Map.put(expense_params, "added_by_id", current_user.id)
 
     # Validate that shares are valid float values
-    with :ok <- validate_shares(shares),
-         {:ok, converted_shares} <- convert_shares_to_float(shares) do
-      case Expenses.create_expense_with_shares(merged_params, converted_shares, current_user) do
-        {:ok, expense} ->
-          conn
-          |> put_status(:created)
-          |> render(:show, expense: expense)
+    case Expenses.create_expense_with_shares(merged_params, shares, current_user) do
+      {:ok, expense} ->
+        conn
+        |> put_status(:created)
+        |> render(:show, expense: expense)
 
-        {:error, %Ecto.Changeset{} = changeset} ->
-          conn
-          |> put_status(:unprocessable_entity)
-          |> put_view(json: SplitwiseWeb.ChangesetJSON)
-          |> render(:error, changeset: changeset)
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> put_view(json: SplitwiseWeb.ChangesetJSON)
+        |> render(:error, changeset: changeset)
 
-        {:error, error} when is_binary(error) ->
-          conn
-          |> put_status(:unprocessable_entity)
-          |> json(%{error: error})
-      end
-    else
+      {:error, error} when is_binary(error) ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: error})
+
       {:error, message} ->
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: message})
-    end
-  end
-
-  # Helper function to validate shares
-  defp validate_shares(shares) when is_list(shares) do
-    Enum.reduce_while(shares, :ok, fn share, :ok ->
-      case share do
-        %{"amount" => amount} when is_number(amount) ->
-          {:cont, :ok}
-
-        %{"amount" => amount} ->
-          {:halt, {:error, "Share amount must be a number, got: #{inspect(amount)}"}}
-
-        _ ->
-          {:halt, {:error, "Invalid share format. Each share must have an 'amount' field"}}
-      end
-    end)
-  end
-
-  defp validate_shares(_), do: {:error, "Shares must be a list"}
-
-  # Helper function to convert share amounts to floats
-  defp convert_shares_to_float(shares) do
-    try do
-      converted_shares =
-        Enum.map(shares, fn share ->
-          amount = Map.get(share, "amount")
-          Map.put(share, "amount", amount * 1.0)
-        end)
-
-      {:ok, converted_shares}
-    rescue
-      _ -> {:error, "Failed to convert share amounts to float"}
     end
   end
 
@@ -122,36 +86,38 @@ defmodule SplitwiseWeb.ExpenseController do
   def update(conn, %{"id" => id, "expense" => expense_params}) do
     current_user = conn.assigns[:current_user]
 
-    expense = Expenses.get_expense!(id)
-
-    if expense.paid_by_id != current_user.id do
-      conn
-      |> put_status(:forbidden)
-      |> json(%{error: "Only the creator can update this expense."})
-    else
-      paid_by_id = Map.get(expense_params, "paid_by_id", current_user.id)
-
-      if paid_by_id != current_user.id do
+    with {parsed_id, _} <- Integer.parse(id),
+         {:ok, expense} <- Expenses.get_expense(parsed_id),
+         true <- expense.added_by_id == current_user.id do
+      if expense.paid_by_id != current_user.id do
         conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "You cannot change the payer of the expense."})
+        |> put_status(:forbidden)
+        |> json(%{error: "Only the creator can update this expense."})
       else
-        merged_params = Map.put(expense_params, "paid_by_id", current_user.id)
+        paid_by_id = Map.get(expense_params, "paid_by_id", current_user.id)
 
-        case Expenses.update_expense(expense, merged_params, current_user) do
-          {:ok, expense} ->
-            render(conn, :show, expense: expense)
+        if paid_by_id != current_user.id do
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{error: "You cannot change the payer of the expense."})
+        else
+          merged_params = Map.put(expense_params, "paid_by_id", current_user.id)
 
-          {:error, %Ecto.Changeset{} = changeset} ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> put_view(json: SplitwiseWeb.ChangesetJSON)
-            |> render(:error, changeset: changeset)
+          case Expenses.update_expense(expense, merged_params, current_user) do
+            {:ok, expense} ->
+              render(conn, :show, expense: expense)
 
-          {:error, error} when is_binary(error) ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> json(%{error: error})
+            {:error, %Ecto.Changeset{} = changeset} ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> put_view(json: SplitwiseWeb.ChangesetJSON)
+              |> render(:error, changeset: changeset)
+
+            {:error, error} when is_binary(error) ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: error})
+          end
         end
       end
     end
@@ -168,6 +134,11 @@ defmodule SplitwiseWeb.ExpenseController do
       |> put_status(:ok)
       |> json(%{success: true})
     else
+      false ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: "You are not authorized to delete this expense"})
+
       {:error, message} when is_binary(message) ->
         conn
         |> put_status(:not_found)
@@ -267,13 +238,13 @@ defmodule SplitwiseWeb.ExpenseController do
     user_id = conn.assigns.current_user.id
 
     case Expenses.get_amount_payable(user_id) do
+      {:ok, []} ->
+        conn
+        |> put_status(:ok)
+        |> json(%{message: "No payable expenses found"})
+
       {:ok, shares} ->
         render(conn, :owing_shares, shares: shares)
-
-      {:error, error} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: error})
     end
   end
 
@@ -281,13 +252,13 @@ defmodule SplitwiseWeb.ExpenseController do
     user_id = conn.assigns.current_user.id
 
     case Expenses.get_amount_receivable(user_id) do
+      {:ok, []} ->
+        conn
+        |> put_status(:ok)
+        |> json(%{message: "No receivable expenses found"})
+
       {:ok, shares} ->
         render(conn, :receivable_shares, shares: shares)
-
-      {:error, error} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: error})
     end
   end
 end
