@@ -1,5 +1,8 @@
 # Splitwise
 
+- [Architecture](./ARCHITECTURE.md)
+- [Database Design](./DATABASE_DESIGN.md)
+
 A Phoenix-based expense sharing application that helps users track shared expenses and balances with housemates, trips, groups, friends, and family.
 
 ## Features
