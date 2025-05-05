@@ -26,6 +26,107 @@
 ## Overview
 The Splitwise database is designed to handle expense sharing, group management, user relationships, and payment tracking. The design focuses on data integrity, query efficiency, and scalability.
 
+## Database Schema
+
+```mermaid
+erDiagram
+    User {
+        int id PK
+        string email
+        string name
+        string password_hash
+        uuid api_key
+        datetime api_key_expires_at
+        datetime inserted_at
+        datetime updated_at
+    }
+
+    Group {
+        int id PK
+        string name
+        string description
+        datetime inserted_at
+        datetime updated_at
+    }
+
+    Expense {
+        int id PK
+        string description
+        float amount
+        date date
+        string status
+        int paid_by_id FK
+        int added_by_id FK
+        int group_id FK
+        datetime inserted_at
+        datetime updated_at
+    }
+
+    ExpenseShare {
+        int id PK
+        float amount
+        float remaining_amount
+        string status
+        float share_percentage
+        int expense_id FK
+        int user_id FK
+        datetime inserted_at
+        datetime updated_at
+    }
+
+    Payment {
+        int id PK
+        float amount
+        string status
+        string transaction_id
+        int from_user_id FK
+        int to_user_id FK
+        int expense_share_id FK
+        datetime inserted_at
+        datetime updated_at
+    }
+
+    Comment {
+        int id PK
+        string content
+        int user_id FK
+        int expense_id FK
+        datetime inserted_at
+        datetime updated_at
+    }
+
+    ActivityLog {
+        int id PK
+        string action
+        map details
+        string entity_type
+        int entity_id
+        int user_id FK
+        int group_id FK
+        int expense_id FK
+        int payment_id FK
+        int comment_id FK
+        datetime inserted_at
+        datetime updated_at
+    }
+
+    User ||--o{ Expense : "pays"
+    User ||--o{ Expense : "adds"
+    User ||--o{ ExpenseShare : "shares"
+    User ||--o{ Payment : "sends"
+    User ||--o{ Payment : "receives"
+    User ||--o{ Comment : "writes"
+    User ||--o{ ActivityLog : "performs"
+    Group ||--o{ Expense : "contains"
+    Group ||--o{ ActivityLog : "logs"
+    Expense ||--o{ ExpenseShare : "has"
+    Expense ||--o{ Comment : "has"
+    Expense ||--o{ ActivityLog : "logs"
+    ExpenseShare ||--o{ Payment : "has"
+    Payment ||--o{ ActivityLog : "logs"
+    Comment ||--o{ ActivityLog : "logs"
+```
+
 
 ### Core Entities
 
